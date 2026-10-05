@@ -1,0 +1,48 @@
+{
+  "page": { "width": 841.92, "height": 595.32 },
+  "margin": { "left": 48, "right": 48, "top": 36, "bottom": 28 },
+  "colors": {
+    "grid": [0.25, 0.55, 0.35],
+    "ink": [0.05, 0.05, 0.05],
+    "fill_header": [0.93, 0.96, 0.93]
+  },
+  "header": {
+    "title_xy": [48, 555],
+    "page_no_xy": [760, 555],
+    "maand_label_xy": [48, 530],
+    "maand_value_xy": [95, 530],
+    "btw_label_xy": [320, 530],
+    "btw_value_xy": [385, 530],
+    "euro_xy": [780, 530]
+  },
+  "table": {
+    "left": 48,
+    "right": 793,
+    "top": 505,
+    "row_count": 31,
+    "row_height": 11.8,
+    "header_height": 28,
+    "columns": {
+      "datum": { "x": 48, "w": 36 },
+      "omschrijving": { "x": 84, "w": 310 },
+      "totalen": { "x": 394, "w": 80 },
+      "v0": { "x": 474, "w": 78 },
+      "v6": { "x": 552, "w": 78 },
+      "v12": { "x": 630, "w": 78 },
+      "v21": { "x": 708, "w": 85 }
+    }
+  },
+  "footer": {
+    "labels_x": 84,
+    "row1_y_offset": 14,
+    "row2_y_offset": 28,
+    "row3_y_offset": 42,
+    "recap_box": { "x": 552, "y": 28, "w": 241, "h": 48 }
+  },
+  "font": {
+    "title_size": 16,
+    "label_size": 8,
+    "cell_size": 7.5,
+    "amount_size": 8
+  }
+}
