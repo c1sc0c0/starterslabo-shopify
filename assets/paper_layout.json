@@ -34,10 +34,9 @@
   },
   "footer": {
     "labels_x": 84,
-    "row1_y_offset": 14,
-    "row2_y_offset": 28,
-    "row3_y_offset": 42,
-    "recap_box": { "x": 552, "y": 28, "w": 241, "h": 48 }
+    "row1_y_offset": 11,
+    "row2_y_offset": 22,
+    "row3_y_offset": 33
   },
   "font": {
     "title_size": 16,

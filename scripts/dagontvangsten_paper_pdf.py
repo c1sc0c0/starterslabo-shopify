@@ -157,7 +157,7 @@ def draw_blank_form(c: canvas.Canvas, layout: dict) -> None:
         y = top - hh - day * rh + 3
         c.drawCentredString(cols["datum"]["x"] + cols["datum"]["w"] / 2, y, f"{day:02d}")
 
-    # Footer labels (left of amount columns)
+    # Footer labels + underlines (maandtotalen only — no empty kwartaal recap box)
     foot = layout["footer"]
     c.setFont("Helvetica", font["label_size"] - 0.5)
     labels = [
@@ -167,35 +167,23 @@ def draw_blank_form(c: canvas.Canvas, layout: dict) -> None:
     ]
     for offset, text in labels:
         y = bottom - offset
+        c.setFillColor(ink)
         c.drawString(foot["labels_x"], y, text)
         c.setStrokeColor(grid)
+        c.setLineWidth(0.8)
         c.line(cols["totalen"]["x"], y - 2, right, y - 2)
-        c.setStrokeColor(grid)
 
-    # Quarter recap box (left blank — fill by hand)
-    box = foot["recap_box"]
-    c.setStrokeColor(grid)
-    c.setLineWidth(0.9)
-    c.rect(box["x"], box["y"], box["w"], box["h"], fill=0, stroke=1)
-    c.setFillColor(ink)
-    c.setFont("Helvetica", 6.5)
-    c.drawString(
-        box["x"] + 4,
-        box["y"] + box["h"] - 12,
-        "RECAPITULATIE DER ONTVANGSTEN EXCL. B.T.W. KWARTAAL",
-    )
-    c.drawString(box["x"] + 4, box["y"] + 10, "TOTAAL B.T.W. KWARTAAL")
-
-    # Starters Labo mark (bottom-right of form area)
+    # Starters Labo mark (bottom-right)
+    logo_y = 22
     c.setFillColor(Color(0.1, 0.1, 0.1))
-    c.rect(right - 95, 32, 55, 14, fill=1, stroke=0)
+    c.rect(right - 95, logo_y, 55, 14, fill=1, stroke=0)
     c.setFillColor(Color(0.55, 0.85, 0.2))
-    c.rect(right - 40, 32, 40, 14, fill=1, stroke=0)
+    c.rect(right - 40, logo_y, 40, 14, fill=1, stroke=0)
     c.setFillColor(white)
     c.setFont("Helvetica-Bold", 6)
-    c.drawCentredString(right - 67, 36, "STARTERS")
+    c.drawCentredString(right - 67, logo_y + 4, "STARTERS")
     c.setFillColor(Color(0.1, 0.1, 0.1))
-    c.drawCentredString(right - 20, 36, "LABO")
+    c.drawCentredString(right - 20, logo_y + 4, "LABO")
 
 
 def draw_values(
@@ -289,14 +277,24 @@ def draw_values(
         totals.get("v12", Decimal("0")),
         totals.get("v21", Decimal("0")),
     )
-    # Excl. / BTW rows: TOTALEN only (rate split of excl/tax not on form columns for footer)
+    # Excl. / BTW rows: TOTALEN + per-VAT columns (Ruth: 21% also excl + BTW)
     y2 = bottom - foot["row2_y_offset"]
-    c.drawRightString(
-        cols["totalen"]["x"] + cols["totalen"]["w"] - 4, y2, fmt_eur(totals["excl"])
+    footer_amounts(
+        y2,
+        totals["excl"],
+        totals.get("v0_excl", Decimal("0")),
+        totals.get("v6_excl", Decimal("0")),
+        totals.get("v12_excl", Decimal("0")),
+        totals.get("v21_excl", Decimal("0")),
     )
     y3 = bottom - foot["row3_y_offset"]
-    c.drawRightString(
-        cols["totalen"]["x"] + cols["totalen"]["w"] - 4, y3, fmt_eur(totals["tax"])
+    footer_amounts(
+        y3,
+        totals["tax"],
+        totals.get("v0_tax", Decimal("0")),
+        totals.get("v6_tax", Decimal("0")),
+        totals.get("v12_tax", Decimal("0")),
+        totals.get("v21_tax", Decimal("0")),
     )
 
     if fee_note:
@@ -396,9 +394,13 @@ def write_paper_pdf(
     return dest
 
 
-def ensure_blank_template(layout_path: Path | None = None) -> Path:
-    """Create assets/dagontvangstenboek-template.pdf if missing."""
-    if DEFAULT_TEMPLATE.is_file():
+def ensure_blank_template(layout_path: Path | None = None, *, force: bool = True) -> Path:
+    """Write assets/dagontvangstenboek-template.pdf from paper_layout.json.
+
+    Default force=True so layout tweaks always refresh the blank grid (avoids
+    stale boxes/lines when regenerating filled PDFs).
+    """
+    if DEFAULT_TEMPLATE.is_file() and not force:
         return DEFAULT_TEMPLATE
     return write_blank_template(DEFAULT_TEMPLATE, layout_path)
 

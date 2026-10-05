@@ -81,11 +81,15 @@ Portal `--attachment` stays on **`dagontvangstenboek.txt`** (per-order audit). T
 
 ## Manual paper book (month end)
 
+Controller (Ruth) confirmed: copy **once per month** into the physical DO book, then attach that page (or the sync bijlage) to the DO verkoopfactuur. OK to keep the generated layout as-is aside from the rules below.
+
 1. Run sync for the month (writes txt + paper PDF from the same plan).
 2. Open `dagontvangstenboek-paper.pdf` beside the physical **ONTVANGSTEN** page.
 3. Copy row by row (days with sales; write `0,0` on quiet days if you fill every line). **N°** on the PDF is already filled (month index from `STARTERSLABO_DO_BOOK_START`).
-4. Check footer totals against txt `Totaal incl. btw:` and the portal DO amount.
-5. Attach **txt** (+ optional scan of the handwritten page) to the DO factuur as today.
+4. **Omschrijving:** shop category, not the Shopify promo title — default `online sales chalk & skincare for climbers` (not `COMBO DEAL`). Constant `DO_OMSCHRIJVING` in `scripts/sync_shopify.py`.
+5. **Footer:** under TOTALEN and each used VAT column (incl. **21%**), copy maandtotalen **incl.**, **excl. BTW**, and **BTW**.
+6. Check footer totals against txt `Totaal incl. btw:` and the portal DO amount.
+7. Attach **txt** (+ optional scan of the handwritten page) to the DO factuur.
 
 Layout assets: `assets/dagontvangstenboek-template.pdf` (blank grid), `assets/paper_layout.json` (coordinates), `assets/dagontvangstenboek-voorbeeld.pdf` (filled FAQ example for visual reference).
 

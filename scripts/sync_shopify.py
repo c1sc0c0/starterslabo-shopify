@@ -285,12 +285,27 @@ def order_vat_rate(order: dict) -> str:
     return "21"
 
 
+# Paper DO omschrijving: what the shop sells (not Shopify promo titles like COMBO DEAL).
+DO_OMSCHRIJVING = "online sales chalk & skincare for climbers"
+
+
+def product_omschrijving(line: dict | None = None) -> str:
+    """Omschrijving for the paper DO book / bijlage."""
+    return DO_OMSCHRIJVING
+
+
 def order_description(order: dict) -> str:
-    title = ", ".join(
-        f"{li['qty']}× {li['title']}" for li in order.get("lines") or []
+    """Day/order label for the paper DO grid."""
+    return DO_OMSCHRIJVING
+
+
+def order_audit_description(order: dict) -> str:
+    """Bijlage line: shop omschrijving + Shopify line titles for audit."""
+    titles = ", ".join(
+        f"{li.get('qty') or 1}× {li.get('title') or li.get('sku') or 'webshop'}"
+        for li in order.get("lines") or []
     ) or "webshop"
-    name = order.get("name") or ""
-    return f"{name} {title}".strip()
+    return f"{DO_OMSCHRIJVING} ({titles})"
 
 
 def paper_rows(plan: dict) -> list[dict]:
@@ -298,6 +313,7 @@ def paper_rows(plan: dict) -> list[dict]:
 
     Amounts in v0/v6/v12/v21 are tax-included (same as the printed form).
     Quiet days get total_incl=0 and empty description.
+    Omschrijving: shop category (not promo titles like COMBO DEAL).
     """
     start = date.fromisoformat(plan["period"]["start"])
     end = date.fromisoformat(plan["period"]["end"])
@@ -330,7 +346,9 @@ def paper_rows(plan: dict) -> list[dict]:
         row["tax"] += tax
         key = {"0": "v0", "6": "v6", "12": "v12", "21": "v21"}.get(rate, "v21")
         row[key] += total
-        row["_parts"].append(order_description(order))
+        for part in order_description(order).split(", "):
+            if part and part not in row["_parts"]:
+                row["_parts"].append(part)
     out: list[dict] = []
     for day_n in range(1, last + 1):
         row = by_day[day_n]
@@ -341,30 +359,45 @@ def paper_rows(plan: dict) -> list[dict]:
 
 
 def paper_month_totals(plan: dict) -> dict[str, Decimal]:
-    """Footer totals for the paper book (must match txt / portal DO)."""
-    incl = money(plan["sales_total_incl"])
-    tax = sum((money(o.get("tax")) for o in plan.get("orders") or []), Decimal("0"))
-    return {
-        "incl": incl,
-        "excl": incl - tax,
-        "tax": tax,
-        "v0": sum(
-            (money(o["total"]) for o in plan.get("orders") or [] if order_vat_rate(o) == "0"),
-            Decimal("0"),
-        ),
-        "v6": sum(
-            (money(o["total"]) for o in plan.get("orders") or [] if order_vat_rate(o) == "6"),
-            Decimal("0"),
-        ),
-        "v12": sum(
-            (money(o["total"]) for o in plan.get("orders") or [] if order_vat_rate(o) == "12"),
-            Decimal("0"),
-        ),
-        "v21": sum(
-            (money(o["total"]) for o in plan.get("orders") or [] if order_vat_rate(o) == "21"),
-            Decimal("0"),
-        ),
+    """Footer totals for the paper book (must match txt / portal DO).
+
+    Incl. amounts go in TOTALEN + VAT columns. Excl. and BTW are also filled
+    under each active VAT column (Ruth: 21% kolom = excl + BTW van de maand).
+    """
+    zero = Decimal("0")
+    totals: dict[str, Decimal] = {
+        "incl": zero,
+        "excl": zero,
+        "tax": zero,
+        "v0": zero,
+        "v6": zero,
+        "v12": zero,
+        "v21": zero,
+        "v0_excl": zero,
+        "v6_excl": zero,
+        "v12_excl": zero,
+        "v21_excl": zero,
+        "v0_tax": zero,
+        "v6_tax": zero,
+        "v12_tax": zero,
+        "v21_tax": zero,
     }
+    for order in plan.get("orders") or []:
+        total = money(order["total"])
+        tax = money(order.get("tax"))
+        rate = order_vat_rate(order)
+        col = {"0": "v0", "6": "v6", "12": "v12", "21": "v21"}.get(rate, "v21")
+        totals["incl"] += total
+        totals["tax"] += tax
+        totals["excl"] += total - tax
+        totals[col] += total
+        totals[f"{col}_excl"] += total - tax
+        totals[f"{col}_tax"] += tax
+    # Prefer plan sales_total_incl when present (single source of truth)
+    if plan.get("sales_total_incl") is not None:
+        totals["incl"] = money(plan["sales_total_incl"])
+        totals["excl"] = totals["incl"] - totals["tax"]
+    return totals
 
 
 def write_book(plan: dict, dest: Path) -> None:
@@ -379,9 +412,7 @@ def write_book(plan: dict, dest: Path) -> None:
     for order in plan["orders"]:
         day = (order["created_at"] or "")[:10]
         vat = order["tax"]
-        title = ", ".join(
-            f"{li['qty']}× {li['title']}" for li in order["lines"]
-        ) or "webshop"
+        title = order_audit_description(order)
         lines.append(
             f"{day}  {order['name']:<8} {order.get('country') or '?':<4}  "
             f"{order['total']:>8}  {vat:>6}  {title}"
